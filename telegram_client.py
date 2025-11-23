@@ -39,6 +39,16 @@ class TelegramClient:
             print(f"Failed to upload document {file_path}: {e}")
             return False
 
+    async def upload_animation(self, file_path, caption=None):
+        """Uploads a GIF/Animation to the Telegram chat."""
+        try:
+            with open(file_path, 'rb') as f:
+                await self.bot.send_animation(chat_id=self.chat_id, animation=f, caption=caption)
+            return True
+        except TelegramError as e:
+            print(f"Failed to upload animation {file_path}: {e}")
+            return False
+
     async def send_message(self, text):
         """Sends a text message to the chat."""
         try:

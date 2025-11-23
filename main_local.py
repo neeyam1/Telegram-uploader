@@ -33,14 +33,12 @@ async def process_recursive(db, telegram):
     # Supported extensions
     IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.webp', '.heic'}
     VIDEO_EXTS = {'.mp4', '.mov', '.avi', '.mkv'}
+    GIF_EXTS = {'.gif'}
     
     for root, dirs, files in os.walk(ROOT_DIRECTORY):
         # Modify dirs in-place to skip excluded directories
-        # This prevents os.walk from even entering them
         dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRECTORIES and not d.startswith('.')]
         
-        # Also check if the full path should be excluded (simple check)
-        # e.g. if root contains "Android/data"
         skip_dir = False
         for excluded in EXCLUDED_DIRECTORIES:
             if excluded in root.split(os.sep):
@@ -50,13 +48,16 @@ async def process_recursive(db, telegram):
             continue
 
         for filename in files:
+            # Ignore junk files (macOS/Android metadata)
+            if filename.startswith('._'):
+                continue
+
             ext = os.path.splitext(filename)[1].lower()
-            if ext not in IMAGE_EXTS and ext not in VIDEO_EXTS:
+            if ext not in IMAGE_EXTS and ext not in VIDEO_EXTS and ext not in GIF_EXTS:
                 continue
                 
             filepath = os.path.join(root, filename)
             
-            # Unique ID for local files: We use the file hash. 
             try:
                 file_hash = get_file_hash(filepath)
             except Exception as e:
@@ -81,15 +82,46 @@ async def process_recursive(db, telegram):
             # Upload
             success = False
             try:
-                if ext in IMAGE_EXTS:
-                    # Telegram Photo limit is ~10MB. If larger, send as document.
-                    if file_size_mb > 9.5: # Safety margin
-                        print(f"Uploading {filename} as document (size {file_size_mb:.2f}MB > 10MB)...")
-                        success = await telegram.upload_document(filepath) # No caption
+                if ext in GIF_EXTS:
+                     success = await telegram.upload_animation(filepath)
+                elif ext in IMAGE_EXTS:
+                    # Telegram Photo limit is ~10MB. 
+                    if file_size_mb > 9.5: 
+                        print(f"Compressing {filename} (size {file_size_mb:.2f}MB > 10MB)...")
+                        try:
+                            from PIL import Image
+                            with Image.open(filepath) as img:
+                                # Convert to RGB (in case of RGBA/P)
+                                if img.mode in ("RGBA", "P"):
+                                    img = img.convert("RGB")
+                                
+                                # Save to temp file with compression
+                                temp_path = filepath + ".compressed.jpg"
+                                # Reduce quality until fit? For now just hardcode a reasonable compression
+                                img.save(temp_path, "JPEG", quality=85, optimize=True)
+                                
+                                # Check if it helped
+                                temp_size = os.path.getsize(temp_path) / (1024 * 1024)
+                                if temp_size < 10:
+                                    print(f"Compressed to {temp_size:.2f}MB. Uploading as photo...")
+                                    success = await telegram.upload_photo(temp_path)
+                                else:
+                                    print(f"Still too big ({temp_size:.2f}MB). Uploading as document.")
+                                    success = await telegram.upload_document(filepath)
+                                
+                                # Cleanup
+                                if os.path.exists(temp_path):
+                                    os.remove(temp_path)
+                        except ImportError:
+                            print("Pillow not installed. Uploading as document.")
+                            success = await telegram.upload_document(filepath)
+                        except Exception as e:
+                            print(f"Compression failed: {e}. Uploading as document.")
+                            success = await telegram.upload_document(filepath)
                     else:
-                        success = await telegram.upload_photo(filepath) # No caption
+                        success = await telegram.upload_photo(filepath) 
                 elif ext in VIDEO_EXTS:
-                    success = await telegram.upload_video(filepath) # No caption
+                    success = await telegram.upload_video(filepath) 
             except Exception as e:
                 print(f"Upload failed for {filename}: {e}")
                 
