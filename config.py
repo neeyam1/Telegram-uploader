@@ -16,11 +16,15 @@ CHUNK_SIZE = 1024 * 1024  # 1MB chunks for download
 MAX_FILE_SIZE_MB = 50     # Telegram bot API limit
 
 # Local Watcher Settings
+import platform
+
 # Local Watcher Settings
 # Root directory to recursively scan
-# On Android: "/storage/emulated/0" (Internal Storage)
-# On Windows: "C:\\Users\\MCL009\\Pictures\\TelegramUploads_Root"
-ROOT_DIRECTORY = "C:\\Users\\MCL009\\Pictures\\TelegramUploads_Root"
+if platform.system() == "Windows":
+    ROOT_DIRECTORY = "C:\\Users\\MCL009\\Pictures\\TelegramUploads_Root"
+else:
+    # Assume Android/Termux
+    ROOT_DIRECTORY = "/storage/emulated/0"
 
 # List of directory names or paths to IGNORE
 # This is important to avoid scanning system files, app data, or junk.
