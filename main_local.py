@@ -82,9 +82,14 @@ async def process_recursive(db, telegram):
             success = False
             try:
                 if ext in IMAGE_EXTS:
-                    success = await telegram.upload_photo(filepath, caption=filename)
+                    # Telegram Photo limit is ~10MB. If larger, send as document.
+                    if file_size_mb > 9.5: # Safety margin
+                        print(f"Uploading {filename} as document (size {file_size_mb:.2f}MB > 10MB)...")
+                        success = await telegram.upload_document(filepath) # No caption
+                    else:
+                        success = await telegram.upload_photo(filepath) # No caption
                 elif ext in VIDEO_EXTS:
-                    success = await telegram.upload_video(filepath, caption=filename)
+                    success = await telegram.upload_video(filepath) # No caption
             except Exception as e:
                 print(f"Upload failed for {filename}: {e}")
                 

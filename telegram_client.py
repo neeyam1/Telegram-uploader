@@ -29,6 +29,16 @@ class TelegramClient:
             print(f"Failed to upload video {file_path}: {e}")
             return False
 
+    async def upload_document(self, file_path, caption=None):
+        """Uploads a file as a document (for large files)."""
+        try:
+            with open(file_path, 'rb') as f:
+                await self.bot.send_document(chat_id=self.chat_id, document=f, caption=caption)
+            return True
+        except TelegramError as e:
+            print(f"Failed to upload document {file_path}: {e}")
+            return False
+
     async def send_message(self, text):
         """Sends a text message to the chat."""
         try:
