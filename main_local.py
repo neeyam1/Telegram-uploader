@@ -28,7 +28,17 @@ async def process_recursive(db, telegram):
         print(f"Error: Root directory '{ROOT_DIRECTORY}' does not exist.")
         return
 
+    # Debug: Check permissions
+    if not os.access(ROOT_DIRECTORY, os.R_OK):
+        print(f"CRITICAL ERROR: No read permission for '{ROOT_DIRECTORY}'.")
+        print("Please run 'termux-setup-storage' in Termux and grant permissions.")
+        return
+
     print(f"Scanning recursively from: {ROOT_DIRECTORY}")
+    
+    # Stats
+    dirs_scanned = 0
+    files_found = 0
     
     # Supported extensions
     IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.webp', '.heic'}
@@ -36,6 +46,8 @@ async def process_recursive(db, telegram):
     GIF_EXTS = {'.gif'}
     
     for root, dirs, files in os.walk(ROOT_DIRECTORY):
+        dirs_scanned += 1
+        
         # Modify dirs in-place to skip excluded directories
         dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRECTORIES and not d.startswith('.')]
         
@@ -47,7 +59,13 @@ async def process_recursive(db, telegram):
         if skip_dir:
             continue
 
+        # Debug: Print first few directories to verify traversal
+        if dirs_scanned <= 3:
+            print(f"Scanning dir: {root}")
+
         for filename in files:
+            files_found += 1
+            
             # Ignore junk files (macOS/Android metadata, trash, hidden)
             if filename.startswith('.'):
                 continue
@@ -134,6 +152,8 @@ async def process_recursive(db, telegram):
             # Rate limit - reduced for speed
             await asyncio.sleep(0.1)
 
+    print(f"Scan done. Checked {dirs_scanned} directories and {files_found} files.")
+
 async def main():
     print(f"Starting Recursive Directory Watcher...")
     print(f"Root: {ROOT_DIRECTORY}")
@@ -146,7 +166,7 @@ async def main():
     try:
         while True:
             await process_recursive(db, telegram)
-            print(f"Scan done. Waiting {POLL_INTERVAL} seconds...")
+            print(f"Waiting {POLL_INTERVAL} seconds...")
             await asyncio.sleep(POLL_INTERVAL)
     except KeyboardInterrupt:
         print("Stopping...")
