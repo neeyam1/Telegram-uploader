@@ -48,8 +48,8 @@ async def process_recursive(db, telegram):
             continue
 
         for filename in files:
-            # Ignore junk files (macOS/Android metadata)
-            if filename.startswith('._'):
+            # Ignore junk files (macOS/Android metadata, trash, hidden)
+            if filename.startswith('.'):
                 continue
 
             ext = os.path.splitext(filename)[1].lower()
@@ -131,8 +131,8 @@ async def process_recursive(db, telegram):
             else:
                 print(f"Failed to upload {filename}")
                 
-            # Rate limit
-            await asyncio.sleep(1)
+            # Rate limit - reduced for speed
+            await asyncio.sleep(0.1)
 
 async def main():
     print(f"Starting Recursive Directory Watcher...")
@@ -146,7 +146,7 @@ async def main():
     try:
         while True:
             await process_recursive(db, telegram)
-            print(f"Sleeping for {POLL_INTERVAL} seconds...")
+            print(f"Scan done. Waiting {POLL_INTERVAL} seconds...")
             await asyncio.sleep(POLL_INTERVAL)
     except KeyboardInterrupt:
         print("Stopping...")

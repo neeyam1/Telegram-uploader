@@ -32,4 +32,4 @@ EXCLUDED_DIRECTORIES = [
     "Telegram",         # Avoid re-uploading things downloaded from Telegram itself (optional)
 ]
 
-POLL_INTERVAL = 60  # Check for new files every 60 seconds
+POLL_INTERVAL = 5  # Check for new files every 5 seconds
