@@ -48,8 +48,18 @@ async def process_recursive(db, telegram):
     for root, dirs, files in os.walk(ROOT_DIRECTORY):
         dirs_scanned += 1
         
+        # Debug: Print top-level directories to see what is detected
+        if root == ROOT_DIRECTORY:
+            print(f"Top-level directories found: {dirs}")
+        
         # Modify dirs in-place to skip excluded directories
+        # We'll capture what we're skipping for debug
+        original_dirs = set(dirs)
         dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRECTORIES and not d.startswith('.')]
+        skipped_dirs = original_dirs - set(dirs)
+        
+        if skipped_dirs and root == ROOT_DIRECTORY:
+             print(f"Skipping top-level folders: {skipped_dirs}")
         
         skip_dir = False
         for excluded in EXCLUDED_DIRECTORIES:
@@ -60,7 +70,7 @@ async def process_recursive(db, telegram):
             continue
 
         # Debug: Print first few directories to verify traversal
-        if dirs_scanned <= 3:
+        if dirs_scanned <= 10: # Increased to 10 to see more
             print(f"Scanning dir: {root}")
 
         for filename in files:
