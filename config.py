@@ -36,3 +36,7 @@ EXCLUDED_DIRECTORIES = [
 ]
 
 POLL_INTERVAL = 5  # Check for new files every 5 seconds
+
+# Set to True to keep running forever (loop).
+# Set to False to run once and exit.
+CONTINUOUS_MONITORING = False

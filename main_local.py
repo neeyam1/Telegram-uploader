@@ -7,7 +7,8 @@ from datetime import datetime
 # Import local modules
 from config import (
     TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, DB_FILE, 
-    MAX_FILE_SIZE_MB, ROOT_DIRECTORY, EXCLUDED_DIRECTORIES, POLL_INTERVAL
+    MAX_FILE_SIZE_MB, ROOT_DIRECTORY, EXCLUDED_DIRECTORIES, POLL_INTERVAL,
+    CONTINUOUS_MONITORING
 )
 from database import Database
 from telegram_client import TelegramClient
@@ -178,6 +179,11 @@ async def main():
     try:
         while True:
             await process_recursive(db, telegram)
+            
+            if not CONTINUOUS_MONITORING:
+                print("Single run complete. Exiting.")
+                break
+                
             print(f"Waiting {POLL_INTERVAL} seconds...")
             await asyncio.sleep(POLL_INTERVAL)
     except KeyboardInterrupt:

@@ -2,11 +2,15 @@ import asyncio
 import os
 from telegram import Bot
 from telegram.error import TelegramError
+from telegram.ext import ApplicationBuilder
 
 class TelegramClient:
     def __init__(self, token, chat_id):
         from telegram.request import HTTPXRequest
-        self.bot = Bot(token=token, request=HTTPXRequest(connect_timeout=30, read_timeout=30))
+        # Increase timeout for large file uploads
+        request = HTTPXRequest(connection_pool_size=8, connect_timeout=300.0, read_timeout=300.0, write_timeout=300.0)
+        self.application = ApplicationBuilder().token(token).request(request).build()
+        self.bot = self.application.bot
         self.chat_id = chat_id
 
     async def upload_photo(self, file_path, caption=None):
