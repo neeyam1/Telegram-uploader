@@ -39,6 +39,8 @@ async def process_recursive(db, telegram):
     # Stats
     dirs_scanned = 0
     files_found = 0
+    skipped_uploaded = 0
+    folder_stats = {} # Count files per top-level folder
     
     # Supported extensions
     IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.webp', '.heic'}
@@ -48,18 +50,12 @@ async def process_recursive(db, telegram):
     for root, dirs, files in os.walk(ROOT_DIRECTORY):
         dirs_scanned += 1
         
-        # Debug: Print top-level directories to see what is detected
-        if root == ROOT_DIRECTORY:
-            print(f"Top-level directories found: {dirs}")
+        # Determine top-level folder for stats
+        rel_path = os.path.relpath(root, ROOT_DIRECTORY)
+        top_folder = rel_path.split(os.sep)[0] if rel_path != '.' else "Root"
         
         # Modify dirs in-place to skip excluded directories
-        # We'll capture what we're skipping for debug
-        original_dirs = set(dirs)
         dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRECTORIES and not d.startswith('.')]
-        skipped_dirs = original_dirs - set(dirs)
-        
-        if skipped_dirs and root == ROOT_DIRECTORY:
-             print(f"Skipping top-level folders: {skipped_dirs}")
         
         skip_dir = False
         for excluded in EXCLUDED_DIRECTORIES:
@@ -69,13 +65,10 @@ async def process_recursive(db, telegram):
         if skip_dir:
             continue
 
-        # Debug: Print first few directories to verify traversal
-        if dirs_scanned <= 10: # Increased to 10 to see more
-            print(f"Scanning dir: {root}")
+        # Verbose: Print EVERY directory
+        print(f"Scanning: {root}")
 
         for filename in files:
-            files_found += 1
-            
             # Ignore junk files (macOS/Android metadata, trash, hidden)
             if filename.startswith('.'):
                 continue
@@ -84,6 +77,9 @@ async def process_recursive(db, telegram):
             if ext not in IMAGE_EXTS and ext not in VIDEO_EXTS and ext not in GIF_EXTS:
                 continue
                 
+            files_found += 1
+            folder_stats[top_folder] = folder_stats.get(top_folder, 0) + 1
+            
             filepath = os.path.join(root, filename)
             
             try:
@@ -93,6 +89,7 @@ async def process_recursive(db, telegram):
                 continue
                 
             if db.is_uploaded(file_hash):
+                skipped_uploaded += 1
                 continue
                 
             print(f"Found new file: {filename} in {root}")
@@ -162,7 +159,12 @@ async def process_recursive(db, telegram):
             # Rate limit - reduced for speed
             await asyncio.sleep(0.1)
 
-    print(f"Scan done. Checked {dirs_scanned} directories and {files_found} files.")
+    print(f"Scan done. Checked {dirs_scanned} directories.")
+    print(f"Found {files_found} media files. Skipped {skipped_uploaded} already uploaded.")
+    if folder_stats:
+        print("Files found per folder:")
+        for folder, count in folder_stats.items():
+            print(f" - {folder}: {count}")
 
 async def main():
     print(f"Starting Recursive Directory Watcher...")

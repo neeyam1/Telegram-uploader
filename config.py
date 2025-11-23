@@ -29,7 +29,6 @@ EXCLUDED_DIRECTORIES = [
     ".thumbnails",      # Cached thumbnails
     "WhatsApp Stickers",# Junk images
     "cache",            # App caches
-    "Telegram",         # Avoid re-uploading things downloaded from Telegram itself (optional)
 ]
 
 POLL_INTERVAL = 5  # Check for new files every 5 seconds
